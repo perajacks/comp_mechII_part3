@@ -10,9 +10,9 @@ import numpy as np
 
 def beam_element_matrices(E, I, rho, A, Le):
     
-        Ke = (E*I/Le**4) * np.array([[12,    6*Le,      -12,    6*Le]
-                                     [6*Le,  4*Le**2,   -6*Le,  2*Le**2]
-                                     [-12,  -6*Le,       12,   -6*Le]
+        Ke = (E*I/Le**3) * np.array([[12,    6*Le,      -12,    6*Le],
+                                     [6*Le,  4*Le**2,   -6*Le,  2*Le**2],
+                                     [-12,  -6*Le,       12,   -6*Le],
                                      [6*Le,  2*Le**2,   -6*Le,  4*Le**2]])
         
         me = (rho * A * Le / 420) * np.array([
@@ -29,16 +29,18 @@ def assemble_global_matrices(n_elem, E, I, rho, A, L):
     n_nodes = n_elem + 1
     dof = 2 * n_nodes
     Le = L/n_elem
+
     
     K = np.zeros((dof, dof))
     M = np.zeros((dof, dof))
     
     for e in range(n_elem):
         Ke, me = beam_element_matrices(E, I, rho, A, Le)
-        idx = np.array([2 * e,  2 * e + 1,  2 * e + 3])
+        idx = np.array([2 * e,  2 * e + 1, 2 * e +2,  2 * e + 3])
         
         for i in range(4):
             for j in range(4):
+       
                 K[idx[i], idx[j]] += Ke[i,j]
                 M[idx[i], idx[j]] += me[i,j]
                 
@@ -46,7 +48,7 @@ def assemble_global_matrices(n_elem, E, I, rho, A, L):
                 
 def apply_boundary_conditions(K, M, f, fixed_dofs):
     
-    free = np.setdiff1d(np.arange(len(f), fixed_dofs))
+    free = np.setdiff1d(np.arange(len(f)), fixed_dofs)
     
     return(K[np.ix_(free,free)],M[np.ix_(free,free)], f[free], free )
     
