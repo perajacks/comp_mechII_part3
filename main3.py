@@ -31,6 +31,7 @@ P = 1000.0
 #Part A: Static Analisis
 #------------------------------------------------------------------
 
+
 K, M = assemble_global_matrices(n_elem, E, I, rho, A, L)
 
 f = tip_load_vector(n_elem, P)
@@ -42,10 +43,43 @@ K_r, M_r, f_r , free = apply_boundary_conditions(K, M, f, fixed_dofs)
 u = static_solver(K_r, f_r)
 
 wL_num = u[-2]
-wL_ana, _ = analytical_solution(P, L, E, I)
+thataL_num = u[-1]
+wL_ana, thetaL_ana = analytical_solution(P, L, E, I)
 
 print(f"Static Tip Displasment FEM: {wL_num:.6e}") 
 print(f"Static Tip Displasment ANA: {wL_ana:.6e}") 
+print(f"Static Pitch Displasment FEM: {thataL_num:.6e}") 
+print(f"Static Pitch Displasment ANA: {thetaL_ana:.6e}") 
+
+n_elem_list = np.array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19,])
+
+w_err = np.zeros(len(n_elem_list))
+theta_err = np.zeros(len(n_elem_list))
+
+for i, ne in enumerate(n_elem_list):
+    K_i, M_i = assemble_global_matrices(ne, E, I, rho, A, L)
+    f_i = tip_load_vector(ne, P)
+    K_o, M_o, f_o, free = apply_boundary_conditions(K_i, M_i, f_i, fixed_dofs)
+    u_i = static_solver(K_o, f_o)
+
+    wL_num = u_i[-2]
+    thetaL_num = u_i[-1]
+
+    w_err[i] = abs(wL_num - wL_ana) / abs(wL_ana)
+    theta_err[i] = abs(thetaL_num - thetaL_ana) / abs(thetaL_ana)
+
+plt.figure(figsize=(6, 4))
+plt.plot(n_elem_list, w_err, 'o-', label=r'error in $w(L)$')
+plt.plot(n_elem_list, theta_err, 's-', label=r'error in $\theta(L)$')
+plt.xlabel('Number of elements')
+plt.ylabel('Relative error')
+plt.title('Static mesh convergence')
+plt.grid(True, which='both', ls=':')
+plt.legend()
+plt.tight_layout()
+plt.savefig('convergence_static.png', dpi=150)
+plt.show()
+
 
 #-------------------------------------------------------------------
 #part B: Free Vipration
@@ -57,7 +91,7 @@ v0  = np.zeros_like(u0)
 zero_force = lambda t: np.zeros_like(u0)
 
 dt = 1e-4
-t_end = 2.0
+t_end = 2.7
 
 t, uh, vh, ah = newmark(M_r, K_r, zero_force, u0, v0, dt, t_end)
 
@@ -90,6 +124,7 @@ plt.plot(t2, uh2[:, -2])
 plt.xlabel("t [s]")
 plt.ylabel("w(L,t) [m]")
 plt.title("Forced vibration response at tip: P(t)=P0 sin(Ω t), Ω=0.95 ω1")
+plt.savefig('Forced vibration response at tip.png', dpi=150)
 plt.show()
 
 plt.figure(figsize=(9, 4))
@@ -97,6 +132,7 @@ plt.plot(t2, uh2[:, n_elem])
 plt.xlabel("t [s]")
 plt.ylabel("w [m]")
 plt.title("Forced vibration response at half length: P(t)=P0 sin(Ω t), Ω=0.95 ω1")
+plt.savefig('Forced vibration response at half length.png', dpi=150)
 plt.show()
 
 plt.figure(figsize=(9, 4))
@@ -104,13 +140,15 @@ plt.plot(vh2[:, -2], uh2[:, -2])
 plt.xlabel("w [m]")
 plt.ylabel("v [m/s^2]")
 plt.title("Phase at tip: P(t)=P0 sin(Ω t), Ω=0.95 ω1")
+plt.savefig('FPhase at tip.png', dpi=150)
 plt.show()
 
 plt.figure(figsize=(9, 4))
-plt.plot(vh2[:, 6], uh2[:, n_elem])
+plt.plot(vh2[:, n_elem], uh2[:, n_elem])
 plt.xlabel("w [m]")
 plt.ylabel("v [m/s^2]")
 plt.title("Phase at half length: P(t)=P0 sin(Ω t), Ω=0.95 ω1")
+plt.savefig('Phase at half length.png', dpi=150)
 plt.show()
 
 T = []
@@ -121,8 +159,8 @@ for i in range(len(t2)):
     u_i = uh2[i]
     v_i = vh2[i]
     
-    T_i = 0.5 * v_i @ M_r @ v_i
-    U_i = 0.5 * u_i @ K_r @ u_i
+    T_i = 0.5 * np.transpose(v_i) @ M_r @ v_i
+    U_i = 0.5 * np.transpose(u_i) @ K_r @ u_i
     E_i = T_i + U_i
     
     T.append(T_i)
