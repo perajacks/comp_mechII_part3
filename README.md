@@ -31,7 +31,7 @@ Numerical solution at the free end:
 As shown above, the error is small enough that we can say the numerical 
 solution converges to the analytical solution.
 
-## Part B: Free oscillation and natural frequency estimation (no eigenvalue solve)
+## Part B: Free oscillation and natural frequency estimation
 Using the Newmark method, we solve M ü + K u = 0 with the beam initially 
 bent the same way it was by the static load P (zero initial velocity). 
 The method integrates, with a time increment dt = 1e-4 s, the position, 
